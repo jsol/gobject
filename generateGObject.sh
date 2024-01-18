@@ -52,7 +52,7 @@ type_to_camel () {
 	echo $CAMEL_NAME
 }
 
-while getopts n:s:e:t:i:p: flag
+while getopts n:m:e:t:i:p: flag
 do
     case "${flag}" in
         n) NAME=${OPTARG};;
@@ -69,7 +69,7 @@ if [ -z "$NAME" ]; then
 fi
 
 if [ -z "$MODULE" ]; then
-    echo "A name space (-s) is needed, on the form namespace_in_lowercase"
+    echo "A module name space (-m) is needed, on the form namespace_in_lowercase"
     exit 1
 fi
 
