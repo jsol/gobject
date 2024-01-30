@@ -69,7 +69,7 @@ if [ -z "$NAME" ]; then
 fi
 
 if [ -z "$MODULE" ]; then
-    echo "A module name space (-m) is needed, on the form namespace_in_lowercase"
+    echo "A module name space (-m) is needed, on the form module_in_lowercase"
     exit 1
 fi
 
@@ -169,7 +169,7 @@ if [ -n "$PROPENUM" ]; then
     PROP_SETTERS="$PROP_SETTERS
     case PROP_${ps^^}:
         g_free(self->${ps});
-        self->${ps} = g_strdup(g_value_get_string(value));
+        self->${ps} = g_value_dup_string(value);
         break; "
     PROP_GETTERS="$PROP_GETTERS
     case PROP_${ps^^}:
@@ -286,13 +286,29 @@ $PROPENUM
 $PROPLIST
 
 static void
+${FULL_NAME}_dispose(GObject *obj)
+{
+  ${CAMEL_NAME} *self =  ${CAST}(obj);
+
+  g_assert(self);
+
+  /* Do unrefs of objects and such. The object might be used after dispose,
+  * and dispose might be called several times on the same object
+  */
+
+  /* Always chain up to the parent dispose function to complete object
+   * destruction. */
+  G_OBJECT_CLASS(${FULL_NAME}_parent_class)->dispose(obj);
+}
+
+static void
 ${FULL_NAME}_finalize(GObject *obj)
 {
   ${CAMEL_NAME} *self =  ${CAST}(obj);
 
   g_assert(self);
 
-  /*free stuff */
+  /* free stuff */
     $PROP_FREE
 
   /* Always chain up to the parent finalize function to complete object
@@ -308,6 +324,7 @@ ${FULL_NAME}_class_init(${CAMEL_NAME}Class *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
+  object_class->dispose = ${FULL_NAME}_dispose;
   object_class->finalize = ${FULL_NAME}_finalize;
   $PROP_INIT
 }
