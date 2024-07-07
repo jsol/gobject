@@ -58,7 +58,7 @@ do
         n) NAME=${OPTARG};;
         m) MODULE=${OPTARG};;
         e) EXTENDS_TYPE=${OPTARG};;
-	      i) INTERFACE_TYPE=${OPTARG};;
+        i) INTERFACE_TYPE=${OPTARG};;
         p) PROPS+=("${OPTARG}");;
     esac
 done
@@ -77,10 +77,10 @@ if [ -z "$EXTENDS_TYPE" ]; then
   EXTENDS="GObject"
   EXTENDS_TYPE="G_TYPE_OBJECT"
 else
-  if [[ "$EXTENDS" == *"_TYPE"* ]]; then
+  if [[ "$EXTENDS_TYPE" == *"_TYPE_"* ]]; then
     EXTENDS=$(type_to_camel "$EXTENDS_TYPE")
   else
-    echo "-e EXTENDS should be a type, ie G_TYPE_OBJECT (default)"
+    echo "-e EXTENDS should be a type, ie G_TYPE_OBJECT (default) was $EXTENDS_TYPE"
     exit 1
   fi
 fi
@@ -245,11 +245,6 @@ cat << EOF > $FULL_NAME.h
 
 G_BEGIN_DECLS
 
-/** Public variables. Move to .c file to make private */
-struct _${CAMEL_NAME} {
-  ${EXTENDS} parent;
-  $PUBLIC_PROPS
-};
 
 /*
  * Type declaration.
@@ -279,6 +274,11 @@ cat << EOF > $FULL_NAME.c
 #include <glib.h>
 #include <glib-object.h>
 #include "${FULL_NAME}.h"
+
+struct _${CAMEL_NAME} {
+  ${EXTENDS} parent;
+  $PUBLIC_PROPS
+};
 
 ${DEFINE_TYPE}
 
