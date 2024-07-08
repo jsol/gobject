@@ -38,6 +38,8 @@ GET_PROPERTY=""
 PROP_INIT=""
 PROP_ARGLIST=""
 PROP_NEW_OBJ_ARGS=""
+SIGS=()
+SIG_ARRAY=""
 
 type_to_camel () {
 	local PARTS=$(echo ${1,,} | tr "_" "\n")
@@ -52,7 +54,7 @@ type_to_camel () {
 	echo $CAMEL_NAME
 }
 
-while getopts n:m:e:t:i:p: flag
+while getopts n:m:e:t:i:p:s: flag
 do
     case "${flag}" in
         n) NAME=${OPTARG};;
@@ -60,6 +62,7 @@ do
         e) EXTENDS_TYPE=${OPTARG};;
         i) INTERFACE_TYPE=${OPTARG};;
         p) PROPS+=("${OPTARG}");;
+        s) SIGS+=("${OPTARG}");;
     esac
 done
 
@@ -152,6 +155,7 @@ do
      echo $value
 done
 
+
 if [ -z "$PROP_ARGLIST" ]; then
   PROP_ARGLIST="void"
 fi
@@ -236,6 +240,49 @@ PROP_INIT="object_class->set_property = set_property;
 
 fi
 
+for value in "${SIGS[@]}"
+do
+     p=${value/-/_}
+     if [ -z "$SIGENUM" ]; then
+        SIGENUM="enum ${NAME}_signals { SIG_${p^^} = 0"
+    else
+        SIGENUM="$SIGENUM, SIG_${p^^}"
+     fi
+
+     SIGDEFS="$SIGDEFS
+     GType ${p}_types[] = { G_TYPE_STRING };
+     ${NAME}_signal_defs[SIG_${p^^}] = 
+          g_signal_newv(\"$value\",
+                        G_TYPE_FROM_CLASS(object_class),
+                        G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE |
+                                G_SIGNAL_NO_HOOKS,
+                        NULL /* closure */,
+                        NULL /* accumulator */,
+                        NULL /* accumulator data */,
+                        NULL /* C marshaller */,
+                        G_TYPE_NONE /* return_type */,
+                        G_N_ELEMENTS(${p}_types) /* n_params */,
+                        ${p}_types /* param_types, or set to NULL */
+          );"
+
+          SIGNAL_DOC="$SIGNAL_DOC
+/** Signal: $value
+* on_$p(
+*  ${CAMEL_NAME} *self,
+*  const gchar *example_param,
+*  gpointer user_data
+*);
+*
+* Describe the signal here
+*/"
+done
+
+if [ -n "$SIGENUM" ]; then
+  SIGENUM="$SIGENUM, SIG_LAST };"
+  SIG_ARRAY="static guint ${NAME}_signal_defs[SIG_LAST] = { 0 };"
+
+fi
+
 ############## Create .h file #########################
 
 cat << EOF > $FULL_NAME.h
@@ -257,7 +304,7 @@ G_DECLARE_FINAL_TYPE(${CAMEL_NAME},
                      ${NAME^^},
                      ${EXTENDS})
 
-
+${SIGNAL_DOC}
 
 /*
  * Method definitions.
@@ -284,6 +331,9 @@ ${DEFINE_TYPE}
 
 $PROPENUM
 $PROPLIST
+
+$SIGENUM
+$SIG_ARRAY
 
 static void
 ${FULL_NAME}_dispose(GObject *obj)
@@ -327,6 +377,8 @@ ${FULL_NAME}_class_init(${CAMEL_NAME}Class *klass)
   object_class->dispose = ${FULL_NAME}_dispose;
   object_class->finalize = ${FULL_NAME}_finalize;
   $PROP_INIT
+
+  $SIGDEFS
 }
 
 static void
