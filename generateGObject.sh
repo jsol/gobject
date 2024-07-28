@@ -1,23 +1,31 @@
 #!/bin/bash
 
-# This is a script that creates empty GObject boilerplate code, with init
-# and finalize functions, as well as getters/setters/interfaces.
-
-# Limitations: Writes the struct to the .h file, sets all parameter types
-# to gchar* and only supports a single interface to implement. But it does
-# create a nice starting point for the actual implementation. Also, the code
-# is not formatted at all, so a nice autoformatter is highly recommended.
-
-# Arguments:
-# -n Name of the new object, underscore lowercase (mandatory)
-# -m Name of the module, underscore lowercase (mandatory)
-# -p Parameter to add. Can have several (Optional)
-# -e Extends other GObject. Must be type, ie G_TYPE_OBJECT (Optional)
-# -i Implement interface. Must be type (Optional)
 
 
-# Usage: ./generateGObject.sh -n "name_of_object" -m "module_prefix" \
-#        -p "param1" -p "param2" -i "G_TYPE_INTEFACE" -e "G_TYPE_OBJECT"
+
+
+print_help () {
+cat  <<EOF
+This is a script that creates empty GObject boilerplate code, with init
+and finalize functions, as well as getters/setters/interfaces
+
+Limitations: Sets all parameter types
+to gchar* and only supports a single interface to implement. But it does
+create a nice starting point for the actual implementation. Also, the code
+is not formatted at all, so a nice autoformatter is highly recommended.
+
+Arguments:
+-n Name of the new object, underscore lowercase (mandatory)
+-m Name of the module, underscore lowercase (mandatory)
+-p Parameter to add. Can have several (Optional)
+-s Signal to add. Can have several (Optional)
+-e Extends other GObject. Must be type, ie G_TYPE_OBJECT (Optional)
+-i Implement interface. Must be type (Optional)
+
+Usage: $0 -n "name_of_object" -m "module_prefix" \
+        -p "param1" -p "param2" -s "signal_name" -i "G_TYPE_INTEFACE" -e "G_TYPE_OBJECT"
+EOF
+}
 
 MODULE="" #ui
 NAME="" #object_example
@@ -54,7 +62,7 @@ type_to_camel () {
 	echo $CAMEL_NAME
 }
 
-while getopts n:m:e:t:i:p:s: flag
+while getopts n:m:e:t:i:p:s:h flag
 do
     case "${flag}" in
         n) NAME=${OPTARG};;
@@ -63,16 +71,26 @@ do
         i) INTERFACE_TYPE=${OPTARG};;
         p) PROPS+=("${OPTARG}");;
         s) SIGS+=("${OPTARG}");;
+	h) print_help
+	   exit 0
+	   ;;
+	*) print_help
+	   exit 1
+	   ;;
     esac
 done
 
 if [ -z "$NAME" ]; then
     echo "A name (-n) is needed, on the form name_in_lowercase"
+    echo ""
+    print_help
     exit 1
 fi
 
 if [ -z "$MODULE" ]; then
     echo "A module name space (-m) is needed, on the form module_in_lowercase"
+    echo ""
+    print_help
     exit 1
 fi
 
@@ -84,6 +102,8 @@ else
     EXTENDS=$(type_to_camel "$EXTENDS_TYPE")
   else
     echo "-e EXTENDS should be a type, ie G_TYPE_OBJECT (default) was $EXTENDS_TYPE"
+    echo ""
+    print_help
     exit 1
   fi
 fi
@@ -288,7 +308,7 @@ fi
 cat << EOF > $FULL_NAME.h
 #pragma once
 
-#include <glib-object.h>
+#include <glib.h>
 
 G_BEGIN_DECLS
 
@@ -319,7 +339,6 @@ EOF
 
 cat << EOF > $FULL_NAME.c
 #include <glib.h>
-#include <glib-object.h>
 #include "${FULL_NAME}.h"
 
 struct _${CAMEL_NAME} {
