@@ -309,6 +309,7 @@ cat << EOF > $FULL_NAME.h
 #pragma once
 
 #include <glib.h>
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 
@@ -339,6 +340,8 @@ EOF
 
 cat << EOF > $FULL_NAME.c
 #include <glib.h>
+#include <glib-object.h>
+
 #include "${FULL_NAME}.h"
 
 struct _${CAMEL_NAME} {
